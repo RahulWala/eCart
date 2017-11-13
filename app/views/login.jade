@@ -1,0 +1,11 @@
+extends base
+	
+block content
+		form(method='POST', action='http://localhost:3000/users/signup')
+		.form-group
+			label(for='emailAddress') Email Address
+			input#email.form-control(type='email', aria-describedby='eamails', placeholder='Enter your Email Address')
+		.form-group
+			label(for='Password') Password
+			input#password.form-control(type='password', aria-describedby='password', placeholder='Enter your Password')
+		button.btn.btn-primary(type='submit') log in

@@ -1,0 +1,19 @@
+{
+  "name": "eCart",
+  "version": "1.0.0",
+  "private": true,
+  "main": "app.js",
+  "dependencies": {
+    "body-parser"     : "latest",
+    "connect-mongo"   : "latest",
+    "cookie-parser"   : "latest",
+    "express"         : "latest",
+    "fs"              : "latest",
+    "jade"            : "latest",
+    "mongoose"        : "^4.5.9",
+    "morgan"          : "latest",
+    "path"	          : "latest",
+    "express-session"	:	"latest",
+    "jade-bootstrap"   : "latest"
+  }
+}
