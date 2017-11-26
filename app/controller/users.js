@@ -1,10 +1,13 @@
-var mongoose = require('mongoose');
-var express = require('express');
-
+var mongoose 	= require('mongoose');
+var express 	= require('express');
+var auth 		= require('./../../middlewares/auth');
 //express router //used to define route
-var appRouter = express.Router();
-var eCart = mongoose.model('User');
+var appRouter 	= express.Router();
+var eCart 		= mongoose.model('User');
 var responseGenerator = require('./../../libs/responseGenerator');
+var eProduct  	= mongoose.model('Product');
+
+
 
 module.exports.controllerFunction = function(app){
 
@@ -13,19 +16,27 @@ module.exports.controllerFunction = function(app){
 		res.render('index');
 	});
 
-	appRouter.get('/signup/screen',function(req,res){
-		res.render('signup');
+	appRouter.get('/proInfo',function(req,res){
+		res.render('proInfo');
 	});
 
-	appRouter.get('/login/screen',function(req,res){
-		res.render('login');
-	});	
+	appRouter.get('/viewPro',function(req,res){
+		res.render('viewPro');
+	});
+
+	// appRouter.get('/signup/screen',function(req,res){
+	// 	res.render('signup');
+	// });
+
+	// appRouter.get('/login/screen',function(req,res){
+	// 	res.render('login');
+	// });	
 
 	appRouter.get('/cart/screen',function(req,res){
 		res.render('cart');
 	});
 
-	appRouter.get('/product/screen',function(req,res){
+	appRouter.get('/product',function(req,res){
 		res.render('product');
 	});
 
@@ -33,12 +44,12 @@ module.exports.controllerFunction = function(app){
 		res.render('error');
 	});
 
-	//All functions
+	///////////////////// SignUp functions //////////////
 	appRouter.post('/signup',function(req,res){
 		if(req.body.firstName != undefined && req.body.lastName != undefined && req.body.emailId != undefined && req.body.password != undefined){
 
 			var newUser			= new eCart({
-				userName		: 	req.body.firstName+''+req.body.lastName,
+				userName		: 	req.body.firstName+' '+req.body.lastName,
 				firstName		: 	req.body.firstName,
 				lastName		: 	req.body.lastName,
 				emailId			: 	req.body.emailId,
@@ -46,51 +57,147 @@ module.exports.controllerFunction = function(app){
 				password		: 	req.body.password
 			});
 
-			console.log("data addedd");
+			// console.log("data addedd");
 			newUser.save(function(error){
 				if(error){
-					console.log("error is here");
+					// console.log("error is here");
 					// var myResponse = responseGenerator.generate(true,"Enter correct value",406,null);
 					// console.log(error);
 					// res.send(myResponse);
 					res.render('error');
 				}
 				else{
-					console.log("error in else");
+					// console.log("error in else");
 					// var myResponse = responseGenerator.generate(false,"Successfully generated",200,newUser);
 					// console.log(myResponse);
 					// res.send(myResponse);
-					res.render('login');
+					req.session.user = newUser;
+					delete req.session.user.password;
+					res.render('index');
 				}
 			});//end newUser save
 		}
 		else{
-			console.log("error in first else");
+			// console.log("error in first else");
 			res.render('error');
 		}
 	});
 
+	////////////////////// LogIn function /////////////////////
 	appRouter.post('/login',function(req,res){
 		eCart.findOne({$and:[{'emailId':req.body.emailId},{'password':req.body.password}]}).exec(function(err,foundUser){
-			console.log(foundUser);
+			// console.log(foundUser+"came in login function");
 			if(err){
-				var myResponse = responseGenerator.generate(true,"Serious error",404,null);
-				res.send(myResponse);
+				// console.log("error in starting");
+				// var myResponse = responseGenerator.generate(true,"Serious error",404,null);
+				// res.send(myResponse);
+				res.render('error');
 			}
-			else if(foundUser == null || foundUser == undefined || foundUser.emailId == undefined){
-				var myResponse = responseGenerator.generate(true,"Check your Email Id and Password",404,null);
-				res.send(myResponse);
+			else if(foundUser == null || foundUser == undefined || foundUser.emailId == undefined || foundUser.password == null){
+				// console.log("eroor due to user info");
+				// var myResponse = responseGenerator.generate(true,"Check your Email Id and Password",404,null);
+				// res.send(myResponse);
+				res.render('error',{title : "User Not Found"});
 			}
 			else{
-				var myResponse = responseGenerator.generate(false,"Successfully logged in",200,myResponse);
+				// var myResponse = responseGenerator.generate(false,"Successfully logged in",200,myResponse);
 				// res.send(myResponse);
+				// console.log(foundUser);
+				req.session.user = foundUser;
+				console.log("User info "+req.session.user);
 				res.render('product',{user:foundUser});
 			}
 		});
 	});
-
 	
+	///////////////// Adding Product Info //////////////
+	appRouter.post('/proInfo',function(req,res){
+		if(req.body.proName != undefined && req.body.price != undefined && req.body.category != undefined){
+			var newPro = new eProduct({
+				proName 	: req.body.proName,
+				price 		: req.body.price,
+				seller		: req.body.seller,
+				model 		: req.body.model,
+				comment		: req.body.comment,
+				category	: req.body.category
+			});
 
+			newPro.save(function(err){					
+				if(err){
+					console.log(err);
+					res.render('error');
+				} else{
+
+					res.render('error',{title: "Product Added"});
+				}
+			});
+		} else{
+			// console.log("You missed some parameter");
+			res.render('error',{title : 'You missed some field'});
+		}
+	});	
+
+	////////// To view Products /////////////////
+	appRouter.post('/viewPro',function(req,res){
+		eProduct.find(function(err,foundPro){
+			if(err){
+				// console.log(err);
+				res.render('err');
+			}else{
+				// console.log(foundPro);
+				res.render('viewPro',{proInfo : foundPro});
+			}
+		});
+	});
+
+	//////////////// Adding to Cart function /////////////
+	appRouter.get('/addCart/:id',function(req,res,next){
+		eProduct.findOne({'_id' : req.params.id},function(err,foundProduct){
+			if(err){
+				res.render('error',{title : "Product doesn't exist"});
+			}else if(foundProduct == undefined || foundProduct == null || foundProduct == ""){
+				res.render('error',{title : "Product doesn't exist"});
+			} else{
+				req.session.cart = foundProduct;
+				eCart.findById(req.session.user,function(err,foundUser){
+					if(err){
+						res.render('error',{title : "You are not logged in"});
+
+					} else if(foundUser == undefined || foundUser == null){
+						res.render('error',{title : "Login to access your cart"});
+					}else{
+
+						foundUser.cart.push(foundProduct);
+						for(i in foundUser.cart){
+							console.log(foundUser.cart[i]);
+						}
+						req.session.userCart = foundUser.cart;
+						console.log(foundUser);
+						res.render('product');
+					}
+				});
+			}
+		});
+	});
+
+	////////////// Viewing to cart function and making payment function /////////////////
+
+	appRouter.get('/viewCart',function(req,res,next){
+
+		console.log(req.session.userCart);
+
+		res.render('viewCart',{ items : req.session.userCart});
+	});
+
+	////////////// LogOut function ///////////
+	appRouter.get('/logout',function(req,res){
+		req.session.destroy(function(err){
+			res.redirect('/users/index');
+		});
+	});
+
+
+	////////////// Setting default route ///////////////////
 	app.use('/users',appRouter);
 }
 

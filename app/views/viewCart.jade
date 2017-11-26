@@ -1,0 +1,16 @@
+extends base
+
+block content
+	table.table
+		thead
+			tr
+				th Products
+				th Quantity
+				th Price
+				th Delete
+		tbody
+			for item in items
+				tr
+					td #{item.proName}
+					td #{item.price}
+					td 
